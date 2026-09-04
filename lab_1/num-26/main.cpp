@@ -3,7 +3,7 @@
 #include <vector>
 #include <locale>
 
-void WriteArr(std::vector<std::string> arr) {
+void WriteArrToCOUT(std::vector<std::string> arr) {
     for (int i = 0; i < arr.size(); i++) {
         if (i == 0 || arr[i] == "!" || arr[i] == "?" || arr[i] == ".") {
             std::cout << arr[i];
@@ -58,23 +58,53 @@ std::vector<std::string> GetLastOfferFromFile(std::ifstream &infile) {
     return lastOffer;
 }
 
-int main() {
-    std::ifstream infile;
-    infile.open("text.txt");
-
-    if (infile.is_open()) {
-        std::vector<std::string> lastOffer = GetLastOfferFromFile(infile);
-
-        if (!lastOffer.empty()) {
-            if (lastOffer.back() == "?" && lastOffer.front() == "Where") {
-                WriteArr(lastOffer);
-                lastOffer.front() = "В Караганде";
-                lastOffer.back() = "!";
-                WriteArr(lastOffer);
-            } else {
-                std::cout << "Спасибо за информацию" << std::endl;
-            }
+std::string WriteArrToStr(std::vector<std::string> arr) {
+    std::string str;
+    for (int i = 0; i < arr.size(); i++) {
+        if (i == 0 || arr[i] == "!" || arr[i] == "?" || arr[i] == ".") {
+            str += arr[i];
+        } else {
+            str += " " + arr[i];
         }
     }
+    return str;
+}
+
+int main() {
+    std::string nameFileInput;
+    std::cout << "Введите названия INPUT файла: ";
+    std::cin >> nameFileInput;
+
+    std::string nameFileOutput;
+    std::cout << "Введите название OUTPUT файла: ";
+    std::cin >> nameFileOutput;
+
+    std::string responce;
+
+    std::ifstream infile;
+    infile.open(nameFileInput);
+    if (infile.is_open()) {
+        std::vector<std::string> lastOffer = GetLastOfferFromFile(infile);
+        if (!lastOffer.empty()) {
+            if (lastOffer.back() == "?" && lastOffer.front() == "Where") {
+                lastOffer.front() = "В Караганде";
+                lastOffer.back() = "!";
+                responce = WriteArrToStr(lastOffer);
+            } else {
+                responce = "Спасибо за информацию";
+            }
+        }
+    } else {
+        std::cerr << "Ошибка чтения INPUT файла!!!" << std::endl;
+    }
     infile.close();
+
+    std::ofstream outfile;
+    outfile.open(nameFileOutput);
+    if (outfile.is_open()) {
+        outfile << responce << std::endl;
+    } else {
+        std::cerr << "Ошибка записи OUTPUT файла!!!" << std::endl;
+    }
+    outfile.close();
 }
