@@ -64,12 +64,22 @@ bool IsPunctuation(std::string itemSentence) {
     return itemSentence == "." || itemSentence == "!" || itemSentence == "?";
 }
 
+bool IsWord(const std::string& word) {
+    for (const auto ch: word) {
+        if (!CheckLetter(ch)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 void UpdateLastSentence(std::vector<std::string> &lastSentence, const std::vector<std::string> &subwords) {
     for (int i = 0; i < subwords.size(); i++) {
-        if (lastSentence.size() > 1 && IsPunctuation(lastSentence[lastSentence.size() - 1]) && !IsPunctuation(subwords[i])) {
+        std::cout << IsWord(subwords[i]) << " " << subwords[i]  << std::endl;
+        if (lastSentence.size() > 1 && IsPunctuation(lastSentence[lastSentence.size() - 1]) && IsWord(subwords[i])) {
             lastSentence.clear();
             lastSentence.push_back(subwords[i]);
-        } else {
+        } else if (IsWord(subwords[i]) || IsPunctuation(subwords[i])) {
             lastSentence.push_back(subwords[i]);
         }
     }
@@ -120,9 +130,18 @@ bool CheckTargetWord(const std::string word) {
     return false;
 }
 
+bool CheckTargetSymbol(std::vector<std::string> sentence) {
+    for (int i = 0; i < sentence.size(); i++) {
+        if (sentence[i] == TARGET_SYMBOL) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void ReplaceTargetSymbols(std::vector<std::string> &lastSentence) {
     for (int i = 0; i < lastSentence.size(); i++) {
-        if (IsPunctuation(lastSentence[i])) {
+        if (IsPunctuation(lastSentence[i]) && lastSentence[i] != ".") {
             lastSentence[i] = REPLACEMENT_SYMBOL;
         }
     }
@@ -132,7 +151,7 @@ std::string GenereteResponseFromFile(std::ifstream &infile) {
     std::string response;
     std::vector<std::string> lastSentence = GetLastSentenceFromFile(infile);
     if (!lastSentence.empty()) {
-        if (CheckTargetWord(lastSentence.front()) && lastSentence.back() == TARGET_SYMBOL) {
+        if (CheckTargetWord(lastSentence.front()) && CheckTargetSymbol(lastSentence)) {
             lastSentence.front() = REPLACEMENT_WORD;
             ReplaceTargetSymbols(lastSentence);
             response = WriteArrToStr(lastSentence);
