@@ -169,6 +169,8 @@ std::string GenereteResponseFromFile(std::ifstream &infile) {
         } else {
             response = STANDART_RESPONSE;
         }
+    } else {
+        response = STANDART_RESPONSE;
     }
     return response;
 }
