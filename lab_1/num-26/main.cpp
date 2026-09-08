@@ -72,8 +72,16 @@ std::vector<std::string> SplitWord(std::string word) {
     return subwords;
 }
 
-bool IsPunctuation(std::string itemSentence) {
-    return itemSentence == "." || itemSentence == "!" || itemSentence == "?";
+bool IsPunctuation(std::string is) {
+    return is == "." || is == "!" || is == "?" || is == "(" || is == ")" || is == ",";
+}
+
+bool IsPunctuationEnd(std::string is) {
+    return is == "." || is == "!" || is == "?";
+}
+
+bool IsNotReplaceSymbols(std::string is) {
+    return is == "." || is == "(" || is == ")";
 }
 
 bool IsWord(const std::string& word) {
@@ -87,10 +95,10 @@ bool IsWord(const std::string& word) {
 
 void UpdateLastSentence(std::vector<std::string> &lastSentence, const std::vector<std::string> &subwords) {
     for (int i = 0; i < subwords.size(); i++) {
-        if (lastSentence.size() > 1 && IsPunctuation(lastSentence[lastSentence.size() - 1]) && IsWord(subwords[i])) {
+        if (lastSentence.size() > 1 && IsPunctuationEnd(lastSentence[lastSentence.size() - 1]) && IsWord(subwords[i])) {
             lastSentence.clear();
             lastSentence.push_back(subwords[i]);
-        } else if (IsWord(subwords[i]) || IsPunctuation(subwords[i])) {
+        } else if (IsWord(subwords[i]) || IsPunctuationEnd(subwords[i]) || IsPunctuation(subwords[i])) {
             lastSentence.push_back(subwords[i]);
         }
     }
@@ -109,7 +117,7 @@ std::vector<std::string> GetLastSentenceFromFile(std::ifstream &infile) {
 std::string WriteArrToStr(std::vector<std::string> arr) {
     std::string str;
     for (int i = 0; i < arr.size(); i++) {
-        if (i == 0 || arr[i] == "!" || arr[i] == "?" || arr[i] == ".") {
+        if (i == 0 || IsPunctuation(arr[i])) {
             str += arr[i];
         } else {
             str += " " + arr[i];
@@ -152,7 +160,7 @@ bool CheckTargetSymbol(std::vector<std::string> sentence) {
 
 void ReplaceTargetSymbols(std::vector<std::string> &lastSentence) {
     for (int i = 0; i < lastSentence.size(); i++) {
-        if (IsPunctuation(lastSentence[i]) && lastSentence[i] != ".") {
+        if (IsPunctuationEnd(lastSentence[i]) && !IsNotReplaceSymbols(lastSentence[i])) {
             lastSentence[i] = REPLACEMENT_SYMBOL;
         }
     }
