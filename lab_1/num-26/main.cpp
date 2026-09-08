@@ -75,7 +75,6 @@ bool IsWord(const std::string& word) {
 
 void UpdateLastSentence(std::vector<std::string> &lastSentence, const std::vector<std::string> &subwords) {
     for (int i = 0; i < subwords.size(); i++) {
-        std::cout << IsWord(subwords[i]) << " " << subwords[i]  << std::endl;
         if (lastSentence.size() > 1 && IsPunctuation(lastSentence[lastSentence.size() - 1]) && IsWord(subwords[i])) {
             lastSentence.clear();
             lastSentence.push_back(subwords[i]);
