@@ -1,3 +1,4 @@
+#include <fstream>
 #include <iostream>
 
 const std::string NULL_STR = "";
@@ -46,7 +47,12 @@ public:
     }
 
     ~Deque() {
-        // clear();
+        Node* node = beg;
+        while (node != nullptr) {
+            Node* next = node->next;
+            delete node;
+            node = next;
+        }
     }
 
     void push_front(const std::string& inWord) {
@@ -105,7 +111,7 @@ public:
         return NULL_STR;
     }
 
-    int len() {
+    int len() {  // dev
         int count = 0;
         Node* node = beg;
         while (node != nullptr) {
@@ -114,13 +120,165 @@ public:
         }
         return count;
     }
+
+    void write() {
+        Node* node = beg;
+        while (node != nullptr) {
+            std::cout << node->word << std::endl;
+            node = node->next;
+        }
+    }
 };
+
+bool IsLetter(const char& ch) {
+    return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z');
+}
+
+char GetUppercase(const char& ch) {
+    switch (ch) {
+        case 'a':
+            return 'A';
+        case 'b':
+            return 'B';
+        case 'c':
+            return 'C';
+        case 'd':
+            return 'D';
+        case 'e':
+            return 'E';
+        case 'f':
+            return 'F';
+        case 'g':
+            return 'G';
+        case 'h':
+            return 'H';
+        case 'i':
+            return 'I';
+        case 'j':
+            return 'J';
+        case 'k':
+            return 'K';
+        case 'l':
+            return 'L';
+        case 'm':
+            return 'M';
+        case 'n':
+            return 'N';
+        case 'o':
+            return 'O';
+        case 'p':
+            return 'P';
+        case 'q':
+            return 'Q';
+        case 'r':
+            return 'R';
+        case 's':
+            return 'S';
+        case 't':
+            return 'T';
+        case 'u':
+            return 'U';
+        case 'v':
+            return 'V';
+        case 'w':
+            return 'W';
+        case 'x':
+            return 'X';
+        case 'y':
+            return 'Y';
+        case 'z':
+            return 'Z';
+    }
+    return ch;
+}
+
+std::string GetUppercaseStr(const std::string& inWord) {
+    std::string word;
+    for (int i = 0; i < inWord.length(); i++) {
+        word += GetUppercase(inWord[i]);
+    }
+    return word;
+}
+
+void FillDeque(std::ifstream& infile, Deque*& deque) {
+    char ch;
+    std::string word;
+    while (infile.get(ch)) {
+        if (ch == '/') {
+            infile.get(ch);
+            if (ch == '/') {
+                infile.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                continue;
+            }
+        }
+
+        if (ch == '\047') {
+            infile.ignore(std::numeric_limits<std::streamsize>::max(), '\047');
+            continue;
+        }
+
+        if (ch == '{') {
+            infile.ignore(std::numeric_limits<std::streamsize>::max(), '}');
+            continue;
+        }
+
+        if (!IsLetter(ch) && !word.empty()) {
+            word = GetUppercaseStr(word);
+            if (word == "BEGIN" || word == "END") {
+                deque->push_back(word);
+            }
+            word = "";
+        } else if (IsLetter(ch)) {
+            word += ch;
+        }
+    }
+}
+
+void Flash(Deque*& deque, Deque*& tempDeque) {
+    while (tempDeque->len() > 0) {
+        std::string tempWord = tempDeque->back();
+        tempDeque->pop_back();
+        deque->push_front(tempWord);
+    }
+}
+
+std::string Analize(Deque* deque) {
+    Deque* tempDeque = new Deque();
+    std::string oper1;
+    std::string oper2;
+    if (deque->len() > 0) {
+        oper2 = deque->front();
+        deque->pop_front();
+    }
+    while (deque->len() > 0) {
+        oper1 = oper2;
+        oper2 = deque->front();
+        deque->pop_front();
+        if (oper1 == "BEGIN" && oper2 == "END") {
+            std::cout << "It`s OK!" << std::endl;
+            Flash(deque, tempDeque);
+        } else {
+            tempDeque->push_back(oper1);
+        }
+    }
+    if (tempDeque->len() > 0) {
+        return "error";
+    }
+    return "";
+}
 
 int main() {
     Deque* deque = new Deque();
-    deque->push_front("0");  // 0
-    deque->push_front("+1");  // +1 0
-    deque->push_back("-1");  // +1 0 -1
-
-    deque->pop_back();
+    std::ifstream infile;
+    infile.open("/home/bomber-hol/Projects/Algos/lab_2/num_25/input.txt");
+    if (infile.is_open()) {
+        FillDeque(infile, deque);
+        std::string err = Analize(deque);
+        if (err != "") {
+            std::cerr << err << std::endl;
+            return 1;
+        }
+    } else {
+        std::cerr << "Error opening file" << std::endl;
+    }
 }

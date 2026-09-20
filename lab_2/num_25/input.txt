@@ -1,0 +1,11 @@
+PROGRAM PrintHello(INPUT, OUTPUT);
+VAR
+  Ch: CHAR;
+BEGIN
+  BEGIN
+    BEGIN
+    END
+    END
+  END
+  WRITELN()
+END.
