@@ -234,7 +234,7 @@ void FillDeque(std::ifstream& infile, Deque*& deque) {
     }
 }
 
-void Flash(Deque*& deque, Deque*& tempDeque) {
+void Flash(Deque*& tempDeque , Deque*& deque) {
     while (tempDeque->len() > 0) {
         std::string tempWord = tempDeque->back();
         tempDeque->pop_back();
@@ -242,23 +242,37 @@ void Flash(Deque*& deque, Deque*& tempDeque) {
     }
 }
 
-std::string Analize(Deque* deque) {
-    Deque* tempDeque = new Deque();
-    std::string oper1;
-    std::string oper2;
+std::string GetOperand(Deque*& deque) {
+    std::string oper;
     if (deque->len() > 0) {
-        oper2 = deque->front();
+        oper = deque->front();
         deque->pop_front();
     }
+    return oper;
+}
+
+std::string Analize(Deque* deque) {
+    Deque* tempDeque = new Deque();
+
+    std::string oper1;
+    std::string oper2;
+
     while (deque->len() > 0) {
         oper1 = oper2;
-        oper2 = deque->front();
-        deque->pop_front();
+        oper2 = GetOperand(deque);
         if (oper1 == "BEGIN" && oper2 == "END") {
             std::cout << "It`s OK!" << std::endl;
-            Flash(deque, tempDeque);
+            Flash(tempDeque, deque);
+            oper1 = "";
+            oper2 = "";
         } else {
-            tempDeque->push_back(oper1);
+            if (!oper1.empty()) {
+                tempDeque->push_back(oper1);
+            }
+
+            if (!oper2.empty() && deque->len() == 0) {
+                tempDeque->push_back(oper2);
+            }
         }
     }
     if (tempDeque->len() > 0) {
