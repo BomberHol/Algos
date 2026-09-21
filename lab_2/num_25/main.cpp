@@ -1,3 +1,4 @@
+#include <deque>
 #include <fstream>
 #include <iostream>
 
@@ -204,6 +205,10 @@ void FillDeque(std::ifstream& infile, Deque*& deque) {
     char ch;
     std::string word;
     while (infile.get(ch)) {
+        if (ch == 'N') {
+            ch = 'N';
+        }
+
         if (ch == '/') {
             infile.get(ch);
             if (ch == '/') {
@@ -224,13 +229,21 @@ void FillDeque(std::ifstream& infile, Deque*& deque) {
 
         if (!IsLetter(ch) && !word.empty()) {
             word = GetUppercaseStr(word);
-            if (word == "BEGIN" || word == "END") {
+            if (word == "BEGIN" || word == "END" || word == "RECORD" || word == "CASE" || word == "REPEAT" || word == "UNTIL") {
                 deque->push_back(word);
             }
             word = "";
         } else if (IsLetter(ch)) {
             word += ch;
         }
+    }
+
+    if (!word.empty()) { // нужно вынести
+        word = GetUppercaseStr(word);
+        if (word == "BEGIN" || word == "END" || word == "RECORD" || word == "CASE" || word == "REPEAT" || word == "UNTIL") {
+            deque->push_back(word);
+        }
+        word = "";
     }
 }
 
@@ -243,42 +256,64 @@ void Flash(Deque*& tempDeque , Deque*& deque) {
 }
 
 std::string GetOperand(Deque*& deque) {
-    std::string oper;
-    if (deque->len() > 0) {
-        oper = deque->front();
-        deque->pop_front();
-    }
+    std::string oper = deque->front();
+    deque->pop_front();
     return oper;
 }
 
-std::string Analize(Deque* deque) {
-    Deque* tempDeque = new Deque();
-
-    std::string oper1;
-    std::string oper2;
-
-    while (deque->len() > 0) {
-        oper1 = oper2;
-        oper2 = GetOperand(deque);
-        if (oper1 == "BEGIN" && oper2 == "END") {
-            std::cout << "It`s OK!" << std::endl;
-            Flash(tempDeque, deque);
-            oper1 = "";
-            oper2 = "";
+std::string CheckRecord(Deque*& deque, std::string oper, const int depth) {
+    std::string err;
+    if (oper == "RECORD") {
+        if (depth == 0) {
+            oper = GetOperand(deque);
+            if (oper != "END") err = "error ending RECORD";
         } else {
-            if (!oper1.empty()) {
-                tempDeque->push_back(oper1);
-            }
-
-            if (!oper2.empty() && deque->len() == 0) {
-                tempDeque->push_back(oper2);
-            }
+            err = "error nesting RECORD";
         }
     }
-    if (tempDeque->len() > 0) {
-        return "error";
+    return err;
+}
+
+std::string CheckCase(Deque*& deque, std::string oper, const int depth) {
+    std::string err;
+    if (oper == "CASE") {
+        if (depth >= 1) {
+            oper = GetOperand(deque);
+            if (oper != "END") err = "error ending CASE";
+        } else {
+            err = "error nesting CASE";
+        }
     }
-    return "";
+    return err;
+}
+
+std::string CheckRepeatUntil(Deque*& deque, std::string oper, const int depth) {
+    std::string err;
+    if (oper == "REPEAT" || oper == "UNTIL") {
+        if (depth < 1) {
+            err = "error nesting " + oper;
+        }
+    }
+    return err;
+}
+
+std::string Analize(Deque* deque) {
+    int depth = 0;
+    std::string err;
+    while (deque->len() > 0 && err.empty() && depth >= 0) {
+        std::string oper = GetOperand(deque);
+        err = CheckRecord(deque, oper, depth);
+        if (err.empty()) err = CheckCase(deque, oper, depth);
+        if (err.empty()) err = CheckRepeatUntil(deque, oper, depth);
+        if (oper == "BEGIN") depth++;
+        if (oper == "END") depth--;
+    }
+
+    if (depth != 0 && err.empty()) {
+        err = "error nesting";
+    }
+
+    return err;
 }
 
 int main() {
@@ -291,6 +326,8 @@ int main() {
         if (err != "") {
             std::cerr << err << std::endl;
             return 1;
+        } else {
+            std::cout << "It`s OK!" << std::endl;
         }
     } else {
         std::cerr << "Error opening file" << std::endl;
