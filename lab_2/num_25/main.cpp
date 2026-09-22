@@ -47,6 +47,16 @@ public:
         end = nullptr;
     }
 
+    Deque(const Deque& inDeque) {
+        beg = nullptr;
+        end = nullptr;
+        Node* node = inDeque.beg;
+        while (node != nullptr) {
+            this->push_back(node->word);
+            node = node->next;
+        }
+    }
+
     ~Deque() {
         Node* node = beg;
         while (node != nullptr) {
@@ -297,7 +307,8 @@ std::string CheckRepeatUntil(Deque*& deque, std::string oper, const int depth) {
     return err;
 }
 
-std::string Analize(Deque* deque) {
+std::string ValidateSyntax(const Deque* inDeque) {
+    Deque* deque = new Deque(*inDeque);
     int depth = 0;
     std::string err;
     while (deque->len() > 0 && err.empty() && depth >= 0) {
@@ -308,11 +319,33 @@ std::string Analize(Deque* deque) {
         if (oper == "BEGIN") depth++;
         if (oper == "END") depth--;
     }
+    return err;
+}
 
-    if (depth != 0 && err.empty()) {
-        err = "error nesting";
+std::string HasClosedPairs(Deque* deque) {
+    std::string err;
+    Deque* tempDeque = new Deque();
+
+    while (deque->len() > 0) {
+        std::string oper = GetOperand(deque);
+        if (oper == "BEGIN" || oper == "REPEAT" || oper == "CASE" || oper == "RECORD") {
+            tempDeque->push_back(oper);
+        }
+        if (oper == "END" || oper == "UNTIL") {
+            tempDeque->pop_back();
+        }
     }
 
+    if (tempDeque->len() > 0) {
+        err = "error vlos";
+    }
+
+    return err;
+}
+
+std::string Analize(Deque* deque) {
+    std::string err = ValidateSyntax(deque);
+    if (err.empty()) err = HasClosedPairs(deque);
     return err;
 }
 
