@@ -15,7 +15,6 @@
 
 #include <fstream>
 #include <iostream>
-#include <limits>
 
 const std::string NULL_STR = "";
 
@@ -275,7 +274,17 @@ std::string FillStack(std::ifstream& infile, Stack*& stack) {
         }
 
         if (ch == '{') {
-            SkipSymbols(infile, x, y, '}');
+            char ch;
+            int count = 1;
+            while (infile.get(ch) && count > 0) {
+                x++;
+                if (ch == '\n') {
+                    y++;
+                    x = 0;
+                }
+                if (ch == '{') count++;
+                if (ch == '}') count--;
+            }
             continue;
         }
 
@@ -304,7 +313,7 @@ std::string FillStack(std::ifstream& infile, Stack*& stack) {
     }
 
     if (stack->getLen() != 0 && err.empty()) {
-        err = "error by close operator строка: " + std::to_string(y) + " символ: " + std::to_string(x);
+        err = "error by close " + stack->getTop()->getWord() + " строка: " + std::to_string(stack->getTop()->getY()) + " символ: " + std::to_string(stack->getTop()->getX());
     }
     return err;
 }

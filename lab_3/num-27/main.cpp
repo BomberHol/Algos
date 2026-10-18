@@ -15,17 +15,18 @@ public:
         }
         nodes.clear();
     }
-    virtual void calculateMinCost();
-    virtual void calculateMaxCost();
+    virtual void calculateMinCost() = 0;
+    virtual void calculateMaxCost() = 0;
 
 protected:
     string data;
     int price = INIT_PRICE;
     vector<Node*> nodes;
+public:
     void addNode(Node *node) {
         nodes.push_back(node);
     }
-    void removeNodeAt(const int index) {
+    void removeChildAt(const size_t index) {
         if (index >= nodes.size()) return;
         delete nodes[index];
         nodes.erase(nodes.begin() + index);
