@@ -32,6 +32,9 @@ public:
         delete nodes[index];
         nodes.erase(nodes.begin() + index);
     }
+    int getPrice() {
+        return price;
+    }
 private:
     int IndexOf(const Node *node) {
         for (int i = 0; i < nodes.size(); i++) {
@@ -50,10 +53,16 @@ public:
         data = inData;
     }
     void calculateMinCost() override {
-
+        price = 0;
+        for (int i = 0; i < nodes.size(); i++) {
+            price += nodes[i]->getPrice();
+        }
     }
     void calculateMaxCost() override {
-
+        price = 0;
+        for (int i = 0; i < nodes.size(); i++) {
+            price += nodes[i]->getPrice();
+        }
     }
 };
 
@@ -63,10 +72,22 @@ public:
         data = inData;
     }
     void calculateMinCost() override {
-
+        price = 0;
+        for (int i = 0; i < nodes.size(); i++) {
+            int childPrice = nodes[i]->getPrice();
+            if (price > childPrice) {
+                price = childPrice;
+            }
+        }
     }
     void calculateMaxCost() override {
-
+        price = 0;
+        for (int i = 0; i < nodes.size(); i++) {
+            int childPrice = nodes[i]->getPrice();
+            if (price < childPrice) {
+                price = childPrice;
+            }
+        }
     }
 };
 
@@ -87,9 +108,11 @@ public:
 
 int main() {
     Node* node = new AndNode("Dad");
-    Node* newNode = new OrNode("son");
-    Node* newNode2 = new OrNode("son2");
-    node->addNode(newNode);
-    node->removeChildAt(newNode2);
-    node->removeChildAt(newNode);
+    Node* newNode1 = new OrNode("son1");
+
+    node->addNode(newNode1);
+
+    newNode1->calculateMinCost();
+    node->calculateMinCost();
+    cout << node->getPrice() << endl;
 }
