@@ -2,10 +2,10 @@
 #include <vector>
 using namespace std;
 
-const string AND_NODE = "and";
-const string OR_NODE = "or";
-const int INIT_PRICE = -1;
-const int ERROR_INDEX = -2;
+constexpr string AND_NODE = "and";
+constexpr string OR_NODE = "or";
+constexpr int INIT_PRICE = -1;
+constexpr int ERROR_INDEX = -2;
 
 class Node {
 public:
@@ -23,14 +23,16 @@ protected:
     int price = INIT_PRICE;
     vector<Node*> nodes;
 public:
-    void addNode(Node *node) {
+    void addNode(Node *&node) {
         nodes.push_back(node);
     }
-    void removeChildAt(const size_t index) {
+    void removeChildAt(Node *node) {
+        const size_t index = IndexOf(node);
         if (index >= nodes.size()) return;
         delete nodes[index];
         nodes.erase(nodes.begin() + index);
     }
+private:
     int IndexOf(const Node *node) {
         for (int i = 0; i < nodes.size(); i++) {
             if (nodes[i] == node) {
@@ -39,6 +41,7 @@ public:
         }
         return ERROR_INDEX;
     }
+
 };
 
 class AndNode: public Node {
@@ -83,5 +86,10 @@ public:
 
 
 int main() {
-    Node* node = new AndNode("123");
+    Node* node = new AndNode("Dad");
+    Node* newNode = new OrNode("son");
+    Node* newNode2 = new OrNode("son2");
+    node->addNode(newNode);
+    node->removeChildAt(newNode2);
+    node->removeChildAt(newNode);
 }
