@@ -1,9 +1,12 @@
+#include <fstream>
 #include <iostream>
+#include <stack>
 #include <vector>
 using namespace std;
 
-constexpr string AND_NODE = "and";
-constexpr string OR_NODE = "or";
+constexpr char AND_NODE = '&';
+constexpr char OR_NODE = '|';
+constexpr char NULL_NODE = '~';
 constexpr int INIT_PRICE = -1;
 constexpr int ERROR_INDEX = -2;
 
@@ -23,7 +26,7 @@ protected:
     int price = INIT_PRICE;
     vector<Node*> nodes;
 public:
-    void addNode(Node *&node) {
+    void addNode(Node *node) {
         nodes.push_back(node);
     }
     void removeChildAt(Node *node) {
@@ -91,28 +94,117 @@ public:
     }
 };
 
-
-
+//----------------------NODE------------------------------
 
 
 class Tree {
-public:
+private:
     string name;
-    Node *Root = nullptr;
+    Node* root;
+    stack<Node*> Stack;
+    void fillTreeForStack(int countDot, char type, string data) {
+        if (type == NULL_NODE) {
+            throw runtime_error("Не указан тип узла в файле!");
+        }
 
-    void add(const string &type, const string &data, const int prior) {
+        if (countDot > Stack.size()) {
+            throw runtime_error("Ошибка записи дерева в файле. countDot > Stack.size()");
+        }
+
+        if (countDot < Stack.size()) {
+            int delta = Stack.size() - countDot;
+            while (delta > 0) {
+                Stack.pop();
+                delta--;
+            }
+            if (Stack.empty()) {
+                throw runtime_error("Ошибка записи дерева в файле. Повторное добавление корня дерева в файл.");
+            }
+        }
+
+        if (countDot == Stack.size()) {
+            Node* newNode = nullptr;
+            if (type == AND_NODE) {
+                newNode = new AndNode(data);
+            } else {
+                newNode = new OrNode(data);
+            }
+
+            if (root == nullptr) {
+                root = newNode;
+                Stack.push(newNode);
+            } else {
+                Node* topNode = Stack.top();
+                topNode->addNode(newNode);
+                Stack.push(newNode);
+            }
+        }
+    }
+    void clearStack() {
+        while (!Stack.empty()) {
+            Stack.pop();
+        }
+    }
+
+public:
+    Tree(string inName) {
+        root = nullptr;
+        name = inName;
+    }
+
+    void readTreeFromFile(ifstream& inFile) {
+        int countDot = 0;
+        string data;
+        char type;
+        char ch;
+
+        while (!inFile.eof()) {
+            countDot = 0;
+            data = "";
+            type = NULL_NODE;
+            while (inFile.get(ch) && ch != '\n') {
+                if (ch == '.') {
+                    countDot++;
+                } else if (ch == AND_NODE || ch == OR_NODE) {
+                    type = ch == OR_NODE ? OR_NODE : AND_NODE;
+                } else {
+                    data += ch;
+                }
+            }
+            cout << countDot << " " << type << " " << data << endl;
+            fillTreeForStack(countDot, type, data);
+        }
+        cout << endl;
+        clearStack();
+    }
+    void writeTree() {
+
+    }
+    void writeAllElements() {
+
+    }
+    void calculateMinTreeCost() {
+
+    }
+    void calculateMaxTreeCost() {
 
     }
 };
 
 
 int main() {
-    Node* node = new AndNode("Dad");
-    Node* newNode1 = new OrNode("son1");
+    Tree* tree = new Tree("My Tree");
+    ifstream inFile = ifstream("in.txt");
+    inFile.open("/home/bomber-hol/Public/Algos/lab_3/num-27/in.txt");
 
-    node->addNode(newNode1);
+    try {
+        if (!inFile.is_open()) {
+            throw runtime_error("Ошибка открытия файла!");
+        }
+        tree->readTreeFromFile(inFile);
+    } catch (runtime_error& e) {
+        cerr << e.what() << endl;
+    }
 
-    newNode1->calculateMinCost();
-    node->calculateMinCost();
-    cout << node->getPrice() << endl;
+
 }
