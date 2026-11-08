@@ -20,17 +20,18 @@ public:
     }
     virtual void calculateMinCost() = 0;
     virtual void calculateMaxCost() = 0;
+    virtual string getType() = 0;
 
 protected:
     string data;
     int price = INIT_PRICE;
     vector<Node*> nodes;
 public:
-    void addNode(Node *node) {
+    void addChild(Node *node) {
         nodes.push_back(node);
     }
     void removeChildAt(Node *node) {
-        const size_t index = IndexOf(node);
+        const size_t index = getIndexChildOf(node);
         if (index >= nodes.size()) return;
         delete nodes[index];
         nodes.erase(nodes.begin() + index);
@@ -38,8 +39,13 @@ public:
     int getPrice() {
         return price;
     }
-private:
-    int IndexOf(const Node *node) {
+    string getData() {
+        return data;
+    }
+    vector<Node*> getChildren() {
+        return nodes;
+    }
+    int getIndexChildOf(const Node *node) {
         for (int i = 0; i < nodes.size(); i++) {
             if (nodes[i] == node) {
                 return i;
@@ -47,7 +53,6 @@ private:
         }
         return ERROR_INDEX;
     }
-
 };
 
 class AndNode: public Node {
@@ -66,6 +71,9 @@ public:
         for (int i = 0; i < nodes.size(); i++) {
             price += nodes[i]->getPrice();
         }
+    }
+    string getType() override {
+        return "&";
     }
 };
 
@@ -92,6 +100,9 @@ public:
             }
         }
     }
+    string getType() override {
+        return "|";
+    }
 };
 
 //----------------------NODE------------------------------
@@ -102,6 +113,7 @@ private:
     string name;
     Node* root;
     stack<Node*> Stack;
+
     void fillTreeForStack(int countDot, char type, string data) {
         if (type == NULL_NODE) {
             throw runtime_error("Не указан тип узла в файле!");
@@ -135,7 +147,7 @@ private:
                 Stack.push(newNode);
             } else {
                 Node* topNode = Stack.top();
-                topNode->addNode(newNode);
+                topNode->addChild(newNode);
                 Stack.push(newNode);
             }
         }
@@ -144,6 +156,16 @@ private:
         while (!Stack.empty()) {
             Stack.pop();
         }
+    }
+    void pushAndPrintNode(Node* node) {
+        Stack.push(node);
+        int width = Stack.size();
+        while (width - 1 > 0) {
+            cout << ".";
+            width--;
+        }
+        cout << node->getType();
+        cout << node->getData() << endl;
     }
 
 public:
@@ -178,7 +200,33 @@ public:
         clearStack();
     }
     void writeTree() {
+        if (root == nullptr) {
+            throw runtime_error("Дерево пустое");
+        }
 
+        Node* deleteNode = nullptr;
+        pushAndPrintNode(root);
+
+        while (!Stack.empty()) {
+            Node* topNode = Stack.top();
+            vector<Node*> children = topNode->getChildren();
+            if (!children.empty()) {
+                int index = topNode->getIndexChildOf(deleteNode);
+                if (index == ERROR_INDEX) {
+                    pushAndPrintNode(children[0]);
+                } else {
+                    if (index == children.size() - 1) {
+                        deleteNode = topNode;
+                        Stack.pop();
+                    } else {
+                        pushAndPrintNode(children[index + 1]);
+                    }
+                }
+            } else {
+                deleteNode = topNode;
+                Stack.pop();
+            }
+        }
     }
     void writeAllElements() {
 
@@ -202,6 +250,7 @@ int main() {
             throw runtime_error("Ошибка открытия файла!");
         }
         tree->readTreeFromFile(inFile);
+        tree->writeTree();
     } catch (runtime_error& e) {
         cerr << e.what() << endl;
     }
