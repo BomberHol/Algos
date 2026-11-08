@@ -6,9 +6,12 @@ using namespace std;
 
 constexpr char AND_NODE = '&';
 constexpr char OR_NODE = '|';
+constexpr char LIST_NODE = '=';
 constexpr char NULL_NODE = '~';
 constexpr int INIT_PRICE = -1;
 constexpr int ERROR_INDEX = -2;
+constexpr int NULL_VALUE_NODE = -3;
+constexpr int ERROR_VALUE = -4;
 
 class Node {
 public:
@@ -73,7 +76,7 @@ public:
         }
     }
     string getType() override {
-        return "&";
+        return "AND";
     }
 };
 
@@ -101,9 +104,27 @@ public:
         }
     }
     string getType() override {
-        return "|";
+        return "OR";
     }
 };
+
+class ListNode: public Node {
+public:
+    ListNode(const string inData, const int inPrice) {
+        data = inData;
+        price = inPrice;
+    }
+    void calculateMinCost() override {
+
+    }
+    void calculateMaxCost() override {
+
+    }
+    string getType() override {
+        return "LIST";
+    }
+};
+
 
 //----------------------NODE------------------------------
 
@@ -114,7 +135,7 @@ private:
     Node* root;
     stack<Node*> Stack;
 
-    void fillTreeForStack(int countDot, char type, string data) {
+    void fillTreeForStack(int countDot, char type, string data, int value) {
         if (type == NULL_NODE) {
             throw runtime_error("Не указан тип узла в файле!");
         }
@@ -138,8 +159,10 @@ private:
             Node* newNode = nullptr;
             if (type == AND_NODE) {
                 newNode = new AndNode(data);
-            } else {
+            } else if (type == OR_NODE) {
                 newNode = new OrNode(data);
+            } else {
+                newNode = new ListNode(data, value);
             }
 
             if (root == nullptr) {
@@ -159,13 +182,33 @@ private:
     }
     void pushAndPrintNode(Node* node) {
         Stack.push(node);
-        int width = Stack.size();
-        while (width - 1 > 0) {
-            cout << ".";
-            width--;
+        int depth = Stack.size() - 1;
+        for (int i = 0; i < depth; i++) {
+            cout << "    ";
         }
-        cout << node->getType();
-        cout << node->getData() << endl;
+        cout << "── " << node->getData();
+        if (node->getType() == "LIST") {
+            cout << "(" << node->getPrice() << ")";
+        } else {
+            cout << "[" << node->getType() << "]";
+        }
+        cout << endl;
+    }
+    int getNumFromFile(ifstream& inFile) {
+        char ch;
+        string numStr;
+        inFile.get(ch);
+        if ((ch == '-') || (ch >= '0' && ch <= '9')) {
+            numStr += ch;
+        }
+        while (inFile.get(ch) && ch != '\n') {
+            if (ch >= '0' && ch <= '9') {
+                numStr += ch;
+            } else {
+                throw runtime_error("Ошибка значения листа");
+            }
+        }
+        return stoi(numStr);
     }
 
 public:
@@ -176,6 +219,7 @@ public:
 
     void readTreeFromFile(ifstream& inFile) {
         int countDot = 0;
+        int value;
         string data;
         char type;
         char ch;
@@ -184,17 +228,22 @@ public:
             countDot = 0;
             data = "";
             type = NULL_NODE;
+            value = NULL_VALUE_NODE;
             while (inFile.get(ch) && ch != '\n') {
                 if (ch == '.') {
                     countDot++;
                 } else if (ch == AND_NODE || ch == OR_NODE) {
                     type = ch == OR_NODE ? OR_NODE : AND_NODE;
+                } else if (ch == '=') {
+                    value = getNumFromFile(inFile);
+                    type = LIST_NODE;
+                    break;
                 } else {
                     data += ch;
                 }
             }
             cout << countDot << " " << type << " " << data << endl;
-            fillTreeForStack(countDot, type, data);
+            fillTreeForStack(countDot, type, data, value);
         }
         cout << endl;
         clearStack();
@@ -254,6 +303,5 @@ int main() {
     } catch (runtime_error& e) {
         cerr << e.what() << endl;
     }
-
 
 }
