@@ -56,6 +56,11 @@ public:
         }
         return ERROR_INDEX;
     }
+    void earsVector() {
+        if (!nodes.empty()) {
+            nodes.erase(nodes.begin());
+        }
+    }
 };
 
 class AndNode: public Node {
@@ -134,6 +139,7 @@ private:
     string name;
     Node* root;
     stack<Node*> Stack;
+    vector<Node*> variants;
 
     void fillTreeForStack(int countDot, char type, string data, int value) {
         if (type == NULL_NODE) {
@@ -187,17 +193,18 @@ private:
             cout << "    ";
         }
         cout << "── " << node->getData();
-        if (node->getType() == "LIST") {
+        // if (node->getType() == "LIST") {
             cout << "(" << node->getPrice() << ")";
-        } else {
+        // } else {
             cout << "[" << node->getType() << "]";
-        }
+        // }
         cout << endl;
     }
     int getNumFromFile(ifstream& inFile) {
         char ch;
         string numStr;
         inFile.get(ch);
+
         if ((ch == '-') || (ch >= '0' && ch <= '9')) {
             numStr += ch;
         }
@@ -242,7 +249,7 @@ public:
                     data += ch;
                 }
             }
-            cout << countDot << " " << type << " " << data << endl;
+            // cout << countDot << " " << type << " " << data << endl;
             fillTreeForStack(countDot, type, data, value);
         }
         cout << endl;
@@ -276,16 +283,141 @@ public:
                 Stack.pop();
             }
         }
-    }
-    void writeAllElements() {
-
+        clearStack();
     }
     void calculateMinTreeCost() {
+        if (root == nullptr) {
+            throw runtime_error("Дерево пустое");
+        }
 
+        Node* deleteNode = nullptr;
+        Stack.push(root);
+
+        while (!Stack.empty()) {
+            Node* topNode = Stack.top();
+            vector<Node*> children = topNode->getChildren();
+            if (!children.empty()) {
+                int index = topNode->getIndexChildOf(deleteNode);
+                if (index == ERROR_INDEX) {
+                    Stack.push(children[0]);
+                } else {
+                    if (index == children.size() - 1) {
+                        topNode->calculateMinCost();
+                        deleteNode = topNode;
+                        Stack.pop();
+                    } else {
+                        Stack.push(children[index + 1]);
+                    }
+                }
+            } else {
+                topNode->calculateMinCost();
+                deleteNode = topNode;
+                Stack.pop();
+            }
+        }
+        clearStack();
     }
+
     void calculateMaxTreeCost() {
+        if (root == nullptr) {
+            throw runtime_error("Дерево пустое");
+        }
 
+        Node* deleteNode = nullptr;
+        Stack.push(root);
+
+        while (!Stack.empty()) {
+            Node* topNode = Stack.top();
+            vector<Node*> children = topNode->getChildren();
+            if (!children.empty()) {
+                int index = topNode->getIndexChildOf(deleteNode);
+                if (index == ERROR_INDEX) {
+                    Stack.push(children[0]);
+                } else {
+                    if (index == children.size() - 1) {
+                        topNode->calculateMaxCost();
+                        deleteNode = topNode;
+                        Stack.pop();
+                    } else {
+                        Stack.push(children[index + 1]);
+                    }
+                }
+            } else {
+                topNode->calculateMaxCost();
+                deleteNode = topNode;
+                Stack.pop();
+            }
+        }
+        clearStack();
     }
+    void writeAllElements() {
+        if (root == nullptr) {
+            throw runtime_error("Дерво пустое");
+        }
+
+        Node* deleteNode = nullptr; 
+        pushAndPrintNode(root);
+
+        while (!Stack.empty()) {
+            Node* topNode = Stack.top();
+            vector<Node*> children = topNode->getChildren();
+
+            if (topNode->getType() == "AND") {
+                if (!children.empty()) {
+                    int index = topNode->getIndexChildOf(deleteNode);
+                    if (index == ERROR_INDEX) {
+                        pushAndPrintNode(children[0]);
+                    } else {
+                        if (index == children.size() - 1) {
+                            deleteNode = topNode;
+                            Stack.pop();
+                        } else {
+                            pushAndPrintNode(children[index + 1]);
+                        }
+                    }
+                } else {
+                    deleteNode = topNode;
+                    Stack.pop();
+                }
+                continue;
+            }
+
+            if (topNode->getType() == "OR") {
+                if (!children.empty()) {
+                    int index = topNode->getIndexChildOf(deleteNode);
+                    if (index == ERROR_INDEX) {
+                        pushAndPrintNode(children[0]);
+                        topNode->earsVector();
+                    }
+                } else {
+                    deleteNode = topNode;
+                    Stack.pop();
+                }
+                continue;
+            }
+
+            if (!children.empty()) {
+                int index = topNode->getIndexChildOf(deleteNode);
+                if (index == ERROR_INDEX) {
+                    pushAndPrintNode(children[0]);
+                } else {
+                    if (index == children.size() - 1) {
+                        deleteNode = topNode;
+                        Stack.pop();
+                    } else {
+                        pushAndPrintNode(children[index + 1]);
+                    }
+                }
+            } else {
+                deleteNode = topNode;
+                Stack.pop();
+            }
+
+
+        }
+        clearStack();
+    }
+
 };
 
 
@@ -299,7 +431,9 @@ int main() {
             throw runtime_error("Ошибка открытия файла!");
         }
         tree->readTreeFromFile(inFile);
+        tree->calculateMaxTreeCost();
         tree->writeTree();
+        tree->writeAllElements();
     } catch (runtime_error& e) {
         cerr << e.what() << endl;
     }
