@@ -21,8 +21,6 @@ public:
         }
         nodes.clear();
     }
-    virtual void calculateMinCost() = 0;
-    virtual void calculateMaxCost() = 0;
     virtual string getType() = 0;
 
 protected:
@@ -56,29 +54,12 @@ public:
         }
         return ERROR_INDEX;
     }
-    void earsVector() {
-        if (!nodes.empty()) {
-            nodes.erase(nodes.begin());
-        }
-    }
 };
 
 class AndNode: public Node {
 public:
     AndNode(const string &inData) {
         data = inData;
-    }
-    void calculateMinCost() override {
-        price = 0;
-        for (int i = 0; i < nodes.size(); i++) {
-            price += nodes[i]->getPrice();
-        }
-    }
-    void calculateMaxCost() override {
-        price = 0;
-        for (int i = 0; i < nodes.size(); i++) {
-            price += nodes[i]->getPrice();
-        }
     }
     string getType() override {
         return "AND";
@@ -90,24 +71,6 @@ public:
     OrNode(const string &inData) {
         data = inData;
     }
-    void calculateMinCost() override {
-        price = 0;
-        for (int i = 0; i < nodes.size(); i++) {
-            int childPrice = nodes[i]->getPrice();
-            if (price > childPrice) {
-                price = childPrice;
-            }
-        }
-    }
-    void calculateMaxCost() override {
-        price = 0;
-        for (int i = 0; i < nodes.size(); i++) {
-            int childPrice = nodes[i]->getPrice();
-            if (price < childPrice) {
-                price = childPrice;
-            }
-        }
-    }
     string getType() override {
         return "OR";
     }
@@ -118,12 +81,6 @@ public:
     ListNode(const string inData, const int inPrice) {
         data = inData;
         price = inPrice;
-    }
-    void calculateMinCost() override {
-
-    }
-    void calculateMaxCost() override {
-
     }
     string getType() override {
         return "LIST";
@@ -162,6 +119,9 @@ private:
         }
 
         if (countDot == Stack.size()) {
+            if (!Stack.empty() && Stack.top()->getType() == "LIST") {
+                throw runtime_error("Дерево построено неправильно. У листа не может быть дочерных объектов!");
+            }
             Node* newNode = nullptr;
             if (type == AND_NODE) {
                 newNode = new AndNode(data);
@@ -193,11 +153,8 @@ private:
             cout << "    ";
         }
         cout << "── " << node->getData();
-        // if (node->getType() == "LIST") {
-            cout << "(" << node->getPrice() << ")";
-        // } else {
-            cout << "[" << node->getType() << "]";
-        // }
+        cout << "(" << node->getPrice() << ")";
+        cout << "[" << node->getType() << "]";
         cout << endl;
     }
     int getNumFromFile(ifstream& inFile) {
@@ -285,139 +242,6 @@ public:
         }
         clearStack();
     }
-    void calculateMinTreeCost() {
-        if (root == nullptr) {
-            throw runtime_error("Дерево пустое");
-        }
-
-        Node* deleteNode = nullptr;
-        Stack.push(root);
-
-        while (!Stack.empty()) {
-            Node* topNode = Stack.top();
-            vector<Node*> children = topNode->getChildren();
-            if (!children.empty()) {
-                int index = topNode->getIndexChildOf(deleteNode);
-                if (index == ERROR_INDEX) {
-                    Stack.push(children[0]);
-                } else {
-                    if (index == children.size() - 1) {
-                        topNode->calculateMinCost();
-                        deleteNode = topNode;
-                        Stack.pop();
-                    } else {
-                        Stack.push(children[index + 1]);
-                    }
-                }
-            } else {
-                topNode->calculateMinCost();
-                deleteNode = topNode;
-                Stack.pop();
-            }
-        }
-        clearStack();
-    }
-
-    void calculateMaxTreeCost() {
-        if (root == nullptr) {
-            throw runtime_error("Дерево пустое");
-        }
-
-        Node* deleteNode = nullptr;
-        Stack.push(root);
-
-        while (!Stack.empty()) {
-            Node* topNode = Stack.top();
-            vector<Node*> children = topNode->getChildren();
-            if (!children.empty()) {
-                int index = topNode->getIndexChildOf(deleteNode);
-                if (index == ERROR_INDEX) {
-                    Stack.push(children[0]);
-                } else {
-                    if (index == children.size() - 1) {
-                        topNode->calculateMaxCost();
-                        deleteNode = topNode;
-                        Stack.pop();
-                    } else {
-                        Stack.push(children[index + 1]);
-                    }
-                }
-            } else {
-                topNode->calculateMaxCost();
-                deleteNode = topNode;
-                Stack.pop();
-            }
-        }
-        clearStack();
-    }
-    void writeAllElements() {
-        if (root == nullptr) {
-            throw runtime_error("Дерво пустое");
-        }
-
-        Node* deleteNode = nullptr; 
-        pushAndPrintNode(root);
-
-        while (!Stack.empty()) {
-            Node* topNode = Stack.top();
-            vector<Node*> children = topNode->getChildren();
-
-            if (topNode->getType() == "AND") {
-                if (!children.empty()) {
-                    int index = topNode->getIndexChildOf(deleteNode);
-                    if (index == ERROR_INDEX) {
-                        pushAndPrintNode(children[0]);
-                    } else {
-                        if (index == children.size() - 1) {
-                            deleteNode = topNode;
-                            Stack.pop();
-                        } else {
-                            pushAndPrintNode(children[index + 1]);
-                        }
-                    }
-                } else {
-                    deleteNode = topNode;
-                    Stack.pop();
-                }
-                continue;
-            }
-
-            if (topNode->getType() == "OR") {
-                if (!children.empty()) {
-                    int index = topNode->getIndexChildOf(deleteNode);
-                    if (index == ERROR_INDEX) {
-                        pushAndPrintNode(children[0]);
-                        topNode->earsVector();
-                    }
-                } else {
-                    deleteNode = topNode;
-                    Stack.pop();
-                }
-                continue;
-            }
-
-            if (!children.empty()) {
-                int index = topNode->getIndexChildOf(deleteNode);
-                if (index == ERROR_INDEX) {
-                    pushAndPrintNode(children[0]);
-                } else {
-                    if (index == children.size() - 1) {
-                        deleteNode = topNode;
-                        Stack.pop();
-                    } else {
-                        pushAndPrintNode(children[index + 1]);
-                    }
-                }
-            } else {
-                deleteNode = topNode;
-                Stack.pop();
-            }
-
-
-        }
-        clearStack();
-    }
-
 };
 
 
@@ -431,9 +255,7 @@ int main() {
             throw runtime_error("Ошибка открытия файла!");
         }
         tree->readTreeFromFile(inFile);
-        tree->calculateMaxTreeCost();
         tree->writeTree();
-        tree->writeAllElements();
     } catch (runtime_error& e) {
         cerr << e.what() << endl;
     }
