@@ -12,6 +12,8 @@ constexpr int INIT_PRICE = -1;
 constexpr int ERROR_INDEX = -2;
 constexpr int NULL_VALUE_NODE = -3;
 constexpr int ERROR_VALUE = -4;
+constexpr int NULL_NUMBER_VISIT = -5;
+constexpr int INFINITY_NUMBER_VISIT = -6;
 
 class Node {
 public:
@@ -22,11 +24,15 @@ public:
         nodes.clear();
     }
     virtual string getType() = 0;
+    virtual int getCountChild() = 0;
 
 protected:
     string data;
     int price = INIT_PRICE;
     vector<Node*> nodes;
+    int maxNumberOfVisit = NULL_NUMBER_VISIT;
+    int numberOfVisit = 0;
+    int count = 1;
 public:
     void addChild(Node *node) {
         nodes.push_back(node);
@@ -54,6 +60,21 @@ public:
         }
         return ERROR_INDEX;
     }
+    int getMaxNumberOfVisit() {
+        return maxNumberOfVisit;
+    }
+    void setMaxNumberOfVisit(int inMaxNumberOfVisit) {
+        maxNumberOfVisit = inMaxNumberOfVisit;
+    }
+    void incNumberOfVisit() {
+        numberOfVisit++;
+    }
+    int getCount() {
+        return count;
+    }
+    void setCount(int inCount) {
+        count = inCount;
+    }
 };
 
 class AndNode: public Node {
@@ -63,6 +84,13 @@ public:
     }
     string getType() override {
         return "AND";
+    }
+    int getCountChild() override {
+        int count = 1;
+        for (int i = 0; i < nodes.size(); i++) {
+            count *= nodes[i]->getCount();
+        }
+        return count;
     }
 };
 
@@ -74,6 +102,13 @@ public:
     string getType() override {
         return "OR";
     }
+    int getCountChild() override {
+        int count = 0;
+        for (int i = 0; i < nodes.size(); i++) {
+            count += nodes[i]->getCount();
+        }
+        return count;
+    }
 };
 
 class ListNode: public Node {
@@ -84,6 +119,9 @@ public:
     }
     string getType() override {
         return "LIST";
+    }
+    int getCountChild() override {
+        return 1;
     }
 };
 
@@ -153,7 +191,7 @@ private:
             cout << "    ";
         }
         cout << "── " << node->getData();
-        cout << "(" << node->getPrice() << ")";
+        cout << "(" << node->getCount() << ")";
         cout << "[" << node->getType() << "]";
         cout << endl;
     }
@@ -242,6 +280,41 @@ public:
         }
         clearStack();
     }
+
+    void calculateMaxVisit() {
+        if (root == nullptr) {
+            throw runtime_error("Дерево пустое");
+        }
+
+        int countTree = 0;
+        Node* deleteNode = nullptr;
+        Stack.push(root);
+        while (!Stack.empty()) {
+            Node* topNode = Stack.top();
+            vector<Node*> children = topNode->getChildren();
+
+            if (!children.empty()) {
+                int index = topNode->getIndexChildOf(deleteNode);
+                if (index == ERROR_INDEX) {
+                    Stack.push(children[0]);
+                } else {
+                    if (index == children.size() - 1) {  // прошел по всем детям
+                        deleteNode = topNode;
+                        Stack.pop();
+                        if (deleteNode->getType() == "AND" || deleteNode->getType() == "OR") {
+                            deleteNode->setCount(deleteNode->getCountChild());
+                        }
+                    } else {
+                        Stack.push(children[index + 1]);
+                    }
+                }
+            } else {
+                deleteNode = topNode;
+                Stack.pop();
+            }
+        }
+        cout << countTree << endl;
+    }
 };
 
 
@@ -255,6 +328,8 @@ int main() {
             throw runtime_error("Ошибка открытия файла!");
         }
         tree->readTreeFromFile(inFile);
+        tree->writeTree();
+        tree->calculateMaxVisit();
         tree->writeTree();
     } catch (runtime_error& e) {
         cerr << e.what() << endl;
