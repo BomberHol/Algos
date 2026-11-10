@@ -69,6 +69,9 @@ public:
     void incNumberOfVisit() {
         numberOfVisit++;
     }
+    int getNumberOfVisit() {
+        return numberOfVisit;
+    }
     int getCount() {
         return count;
     }
@@ -361,6 +364,101 @@ public:
         }
         clearStack();
     }
+
+    void writeElement(Node* node) {
+        int depth = Stack.size() - 1;
+        for (int i = 0; i < depth; i++) {
+            cout << "    ";
+        }
+        cout << "── " << node->getData();
+        cout << endl;
+    }
+
+    void pushAndInc(Node* node) {
+        Stack.push(node);
+        node->incNumberOfVisit();
+    }
+
+    void writeAllElements() {
+        if (root == nullptr) {
+            throw runtime_error("Дерево пустое");
+        }
+
+
+
+        while (root->getNumberOfVisit() < root->getMaxNumberOfVisit()) {
+            cout << endl;
+
+            Node* deleteNode = nullptr;
+            pushAndInc(root);
+            writeElement(root);
+
+
+            while (!Stack.empty()) {
+                Node* topNode = Stack.top();
+                vector<Node*> children = topNode->getChildren();
+
+                if (topNode->getType() == "AND") {
+                    if (!children.empty()) {
+                        int index = topNode->getIndexChildOf(deleteNode);
+                        if (index == ERROR_INDEX) {
+                            if (children[0]->getNumberOfVisit() < children[0]->getMaxNumberOfVisit()) {
+                                pushAndInc(children[0]);
+                                writeElement(children[0]);
+                            } else {
+                                deleteNode = children[0];
+                            }
+                        } else {
+                            if (index == children.size() - 1) {
+                                deleteNode = topNode;
+                                Stack.pop();
+                            } else {
+                                if (children[index + 1]->getNumberOfVisit() < children[index + 1]->getMaxNumberOfVisit()) {
+                                    pushAndInc(children[index + 1]);
+                                    writeElement(children[index + 1]);
+                                } else {
+                                    deleteNode = children[index + 1];
+                                }
+                            }
+                        }
+                    } else {
+                        deleteNode = topNode;
+                        Stack.pop();
+                    }
+                }
+
+                if (topNode->getType() == "OR") {
+                    int sizeStack = Stack.size();
+                    for (int i = 0; i < children.size(); i++) {
+                        if (children[i]->getNumberOfVisit() < children[i]->getMaxNumberOfVisit()) {
+                            pushAndInc(children[i]);
+                            writeElement(children[i]);
+                            break;
+                        }
+                    }
+                    if (sizeStack == Stack.size()) {
+                        deleteNode = topNode;
+                        Stack.pop();
+                        while (!Stack.empty() && Stack.top()->getType() == "OR") {
+                            deleteNode = Stack.top();
+                            Stack.pop();
+                        }
+                    }
+                }
+
+                if (topNode->getType() == "LIST") {
+                    deleteNode = topNode;
+                    Stack.pop();
+                    while (!Stack.empty() && Stack.top()->getType() == "OR") {
+                        deleteNode = Stack.top();
+                        Stack.pop();
+                    }
+                }
+
+            }
+            clearStack();
+        }
+    }
 };
 
 
@@ -374,11 +472,11 @@ int main() {
             throw runtime_error("Ошибка открытия файла!");
         }
         tree->readTreeFromFile(inFile);
-        tree->writeTree();
         tree->calculateAllElementsTree();
-        tree->writeTree();
         tree->calculateMaxVisit();
         tree->writeTree();
+        cout << endl << endl << endl;
+        tree->writeAllElements();
     } catch (runtime_error& e) {
         cerr << e.what() << endl;
     }
