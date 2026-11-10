@@ -193,6 +193,7 @@ private:
         cout << "── " << node->getData();
         cout << "(" << node->getCount() << ")";
         cout << "[" << node->getType() << "]";
+        cout << node->getMaxNumberOfVisit();
         cout << endl;
     }
     int getNumFromFile(ifstream& inFile) {
@@ -281,12 +282,11 @@ public:
         clearStack();
     }
 
-    void calculateMaxVisit() {
+    void calculateAllElementsTree() {
         if (root == nullptr) {
             throw runtime_error("Дерево пустое");
         }
 
-        int countTree = 0;
         Node* deleteNode = nullptr;
         Stack.push(root);
         while (!Stack.empty()) {
@@ -313,7 +313,53 @@ public:
                 Stack.pop();
             }
         }
-        cout << countTree << endl;
+        clearStack();
+    }
+
+    void calculateMaxVisit() {
+        if (root == nullptr) {
+            throw runtime_error("Дерево пустое");
+        }
+
+        Node* deleteNode = nullptr;
+        Stack.push(root);
+        root->setMaxNumberOfVisit(root->getCountChild());
+        while (!Stack.empty()) {
+            Node* topNode = Stack.top();
+            vector<Node*> children = topNode->getChildren();
+
+            if (!children.empty()) {
+                int index = topNode->getIndexChildOf(deleteNode);
+                if (index == ERROR_INDEX) {
+                    Stack.push(children[0]);
+                    if (topNode->getType() == "AND") {
+                        children[0]->setMaxNumberOfVisit(topNode->getMaxNumberOfVisit());
+                    } else if (topNode->getType() == "OR") {
+                        children[0]->setMaxNumberOfVisit((topNode->getMaxNumberOfVisit() / topNode->getCountChild()) * children[0]->getCount());
+                    }
+
+                } else {
+                    if (index == children.size() - 1) {  // прошел по всем детям
+                        deleteNode = topNode;
+                        Stack.pop();
+                        if (deleteNode->getType() == "AND" || deleteNode->getType() == "OR") {
+                            deleteNode->setCount(deleteNode->getCountChild());
+                        }
+                    } else {
+                        Stack.push(children[index + 1]);
+                        if (topNode->getType() == "AND") {
+                            children[index + 1]->setMaxNumberOfVisit(topNode->getMaxNumberOfVisit());
+                        } else if (topNode->getType() == "OR") {
+                            children[index + 1]->setMaxNumberOfVisit((topNode->getMaxNumberOfVisit() / topNode->getCountChild()) * children[index + 1]->getCount());
+                        }
+                    }
+                }
+            } else {
+                deleteNode = topNode;
+                Stack.pop();
+            }
+        }
+        clearStack();
     }
 };
 
@@ -328,6 +374,8 @@ int main() {
             throw runtime_error("Ошибка открытия файла!");
         }
         tree->readTreeFromFile(inFile);
+        tree->writeTree();
+        tree->calculateAllElementsTree();
         tree->writeTree();
         tree->calculateMaxVisit();
         tree->writeTree();
