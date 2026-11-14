@@ -24,7 +24,7 @@ public:
         nodes.clear();
     }
     virtual string getType() = 0;
-    virtual int getCountChild() = 0;
+    virtual int getCountVariantsForChild() = 0;
 
 protected:
     string data;
@@ -32,7 +32,7 @@ protected:
     vector<Node*> nodes;
     int maxNumberOfVisit = NULL_NUMBER_VISIT;
     int numberOfVisit = 0;
-    int count = 1;
+    int countVariants = 1;
 public:
     void addChild(Node *node) {
         nodes.push_back(node);
@@ -72,11 +72,11 @@ public:
     int getNumberOfVisit() {
         return numberOfVisit;
     }
-    int getCount() {
-        return count;
+    int getCountVariants() {
+        return countVariants;
     }
-    void setCount(int inCount) {
-        count = inCount;
+    void setCountVariants(int inCount) {
+        countVariants = inCount;
     }
 };
 
@@ -88,10 +88,10 @@ public:
     string getType() override {
         return "AND";
     }
-    int getCountChild() override {
+    int getCountVariantsForChild() override {
         int count = 1;
         for (int i = 0; i < nodes.size(); i++) {
-            count *= nodes[i]->getCount();
+            count *= nodes[i]->getCountVariants();
         }
         return count;
     }
@@ -105,10 +105,10 @@ public:
     string getType() override {
         return "OR";
     }
-    int getCountChild() override {
+    int getCountVariantsForChild() override {
         int count = 0;
         for (int i = 0; i < nodes.size(); i++) {
-            count += nodes[i]->getCount();
+            count += nodes[i]->getCountVariants();
         }
         return count;
     }
@@ -123,7 +123,7 @@ public:
     string getType() override {
         return "LIST";
     }
-    int getCountChild() override {
+    int getCountVariantsForChild() override {
         return 1;
     }
 };
@@ -194,7 +194,7 @@ private:
             cout << "    ";
         }
         cout << "── " << node->getData();
-        cout << "(" << node->getCount() << ")";
+        cout << "(" << node->getCountVariants() << ")";
         cout << "[" << node->getType() << "]";
         cout << node->getMaxNumberOfVisit();
         cout << endl;
@@ -254,6 +254,7 @@ public:
         cout << endl;
         clearStack();
     }
+
     void writeTree() {
         if (root == nullptr) {
             throw runtime_error("Дерево пустое");
@@ -305,7 +306,7 @@ public:
                         deleteNode = topNode;
                         Stack.pop();
                         if (deleteNode->getType() == "AND" || deleteNode->getType() == "OR") {
-                            deleteNode->setCount(deleteNode->getCountChild());
+                            deleteNode->setCountVariants(deleteNode->getCountVariantsForChild());
                         }
                     } else {
                         Stack.push(children[index + 1]);
@@ -326,7 +327,7 @@ public:
 
         Node* deleteNode = nullptr;
         Stack.push(root);
-        root->setMaxNumberOfVisit(root->getCountChild());
+        root->setMaxNumberOfVisit(root->getCountVariantsForChild());
         while (!Stack.empty()) {
             Node* topNode = Stack.top();
             vector<Node*> children = topNode->getChildren();
@@ -338,7 +339,7 @@ public:
                     if (topNode->getType() == "AND") {
                         children[0]->setMaxNumberOfVisit(topNode->getMaxNumberOfVisit());
                     } else if (topNode->getType() == "OR") {
-                        children[0]->setMaxNumberOfVisit((topNode->getMaxNumberOfVisit() / topNode->getCountChild()) * children[0]->getCount());
+                        children[0]->setMaxNumberOfVisit((topNode->getMaxNumberOfVisit() / topNode->getCountVariantsForChild()) * children[0]->getCountVariants());
                     }
 
                 } else {
@@ -346,14 +347,14 @@ public:
                         deleteNode = topNode;
                         Stack.pop();
                         if (deleteNode->getType() == "AND" || deleteNode->getType() == "OR") {
-                            deleteNode->setCount(deleteNode->getCountChild());
+                            deleteNode->setCountVariants(deleteNode->getCountVariantsForChild());
                         }
                     } else {
                         Stack.push(children[index + 1]);
                         if (topNode->getType() == "AND") {
                             children[index + 1]->setMaxNumberOfVisit(topNode->getMaxNumberOfVisit());
                         } else if (topNode->getType() == "OR") {
-                            children[index + 1]->setMaxNumberOfVisit((topNode->getMaxNumberOfVisit() / topNode->getCountChild()) * children[index + 1]->getCount());
+                            children[index + 1]->setMaxNumberOfVisit((topNode->getMaxNumberOfVisit() / topNode->getCountVariantsForChild()) * children[index + 1]->getCountVariants());
                         }
                     }
                 }
@@ -363,6 +364,10 @@ public:
             }
         }
         clearStack();
+    }
+
+    void write() {
+        cout << root->getCountVariants() << endl;
     }
 
     void writeElement(Node* node) {
@@ -387,12 +392,14 @@ public:
 
 
         while (root->getNumberOfVisit() < root->getMaxNumberOfVisit()) {
-            cout << endl;
+            cout << "-------------------------------------------------------" << endl;
+
 
             Node* deleteNode = nullptr;
             pushAndInc(root);
             writeElement(root);
 
+            bool flag = false;
 
             while (!Stack.empty()) {
                 Node* topNode = Stack.top();
@@ -400,9 +407,31 @@ public:
 
                 if (topNode->getType() == "AND") {
                     if (!children.empty()) {
+
+                        int countVariant = topNode->getCountVariants();
+                        for (int i = 0; i < children.size(); i++) {
+                            int countChild = topNode->getChildren().size();
+                            if (children[i]->getType() == "OR") {
+                                if (children[i]->getNumberOfVisit() != 0 && children[i]->getCountVariantsForChild() < countChild) {
+                                    pushAndInc(children[0]);
+                                    writeElement(children[0]);
+                                    flag = true;
+                                } else {
+                                    flag = false;
+                                }
+                            }
+                        }
+
                         int index = topNode->getIndexChildOf(deleteNode);
                         if (index == ERROR_INDEX) {
                             if (children[0]->getNumberOfVisit() < children[0]->getMaxNumberOfVisit()) {
+                                if (children[0]->getType() == "OR") {
+                                    if (children[0]->getNumberOfVisit() != 0 && children[0]->getNumberOfVisit() < children[0]->getChildren().size()) {
+                                        flag = true;
+                                    } else {
+                                        flag = false;
+                                    }
+                                }
                                 pushAndInc(children[0]);
                                 writeElement(children[0]);
                             } else {
@@ -412,8 +441,13 @@ public:
                             if (index == children.size() - 1) {
                                 deleteNode = topNode;
                                 Stack.pop();
+                                while (!Stack.empty() && Stack.top()->getType() == "OR") {
+                                    deleteNode = Stack.top();
+                                    Stack.pop();
+                                }
                             } else {
                                 if (children[index + 1]->getNumberOfVisit() < children[index + 1]->getMaxNumberOfVisit()) {
+
                                     pushAndInc(children[index + 1]);
                                     writeElement(children[index + 1]);
                                 } else {
@@ -424,16 +458,37 @@ public:
                     } else {
                         deleteNode = topNode;
                         Stack.pop();
+                        while (!Stack.empty() && Stack.top()->getType() == "OR") {
+                            deleteNode = Stack.top();
+                            Stack.pop();
+                        }
                     }
                 }
 
                 if (topNode->getType() == "OR") {
                     int sizeStack = Stack.size();
-                    for (int i = 0; i < children.size(); i++) {
-                        if (children[i]->getNumberOfVisit() < children[i]->getMaxNumberOfVisit()) {
-                            pushAndInc(children[i]);
-                            writeElement(children[i]);
-                            break;
+
+                    if (flag) {
+                        int min = 100000;
+                        int indexChild = -1;
+
+                        for (int i = 0; i < children.size(); i++) {
+                            if (min > children[i]->getNumberOfVisit() && children[i]->getNumberOfVisit() < children[i]->getMaxNumberOfVisit()) {
+                                min = children[i]->getNumberOfVisit();
+                                indexChild = i;
+                            }
+                        }
+                        if (min != -1 && indexChild != -1) {
+                            pushAndInc(children[indexChild]);
+                            writeElement(children[indexChild]);
+                        }
+                    } else {
+                        for (int i = 0; i < children.size(); i++) {
+                            if (children[i]->getNumberOfVisit() < children[i]->getMaxNumberOfVisit()) {
+                                pushAndInc(children[i]);
+                                writeElement(children[i]);
+                                break;
+                            }
                         }
                     }
                     if (sizeStack == Stack.size()) {
@@ -476,6 +531,7 @@ int main() {
         tree->calculateMaxVisit();
         tree->writeTree();
         cout << endl << endl << endl;
+        tree->write();
         tree->writeAllElements();
     } catch (runtime_error& e) {
         cerr << e.what() << endl;
