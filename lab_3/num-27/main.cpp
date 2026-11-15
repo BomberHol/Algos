@@ -384,134 +384,56 @@ public:
         node->incNumberOfVisit();
     }
 
+    int getRoundOff(int countOfVisit, int countChild) {
+        while (countOfVisit >= countChild) {
+            countOfVisit -= countChild;
+        }
+        return countOfVisit;
+    }
+
     void writeAllElements() {
         if (root == nullptr) {
             throw runtime_error("Дерево пустое");
         }
 
+        struct StackEntity {
+            Node* node;
+            int variant;
+            int depth;
+        };
 
-
-        while (root->getNumberOfVisit() < root->getMaxNumberOfVisit()) {
-            cout << "-------------------------------------------------------" << endl;
-
-
-            Node* deleteNode = nullptr;
-            pushAndInc(root);
-            writeElement(root);
-
-            bool flag = false;
-
+        stack<StackEntity> Stack;
+        const int totalVariants = root->getCountVariants();
+        for (int variant = 0; variant < totalVariants; variant++) {
+            Stack.push({root, variant, 0});
             while (!Stack.empty()) {
-                Node* topNode = Stack.top();
-                vector<Node*> children = topNode->getChildren();
-
-                if (topNode->getType() == "AND") {
-                    if (!children.empty()) {
-
-                        int countVariant = topNode->getCountVariants();
-                        for (int i = 0; i < children.size(); i++) {
-                            int countChild = topNode->getChildren().size();
-                            if (children[i]->getType() == "OR") {
-                                if (children[i]->getNumberOfVisit() != 0 && children[i]->getCountVariantsForChild() < countChild) {
-                                    pushAndInc(children[0]);
-                                    writeElement(children[0]);
-                                    flag = true;
-                                } else {
-                                    flag = false;
-                                }
-                            }
+                StackEntity top = Stack.top();
+                Stack.pop();
+                top.node->incNumberOfVisit();
+                for (int depth = 0; depth < top.depth; depth++) {
+                    cout << "    ";
+                }
+                cout << "── " << top.node->getData() << '\n';
+                vector<Node*> children = top.node->getChildren();
+                int localVariant = top.variant;
+                if (top.node->getType() == "AND") {
+                    for (int i = 0; i < children.size(); i++) {
+                        Node* child = children[i];
+                        int countVariantsChild = child->getCountVariants();
+                        Stack.push({child, localVariant % countVariantsChild, top.depth + 1});
+                        localVariant /= countVariantsChild;
+                    }
+                } else if (top.node->getType() == "OR") {
+                    for (int i = 0; i < children.size(); i++) {
+                        int countVariantsChild = children[i]->getCountVariants();
+                        if (localVariant < countVariantsChild) {
+                            Stack.push({children[i], localVariant, top.depth + 1});
+                            break;
                         }
-
-                        int index = topNode->getIndexChildOf(deleteNode);
-                        if (index == ERROR_INDEX) {
-                            if (children[0]->getNumberOfVisit() < children[0]->getMaxNumberOfVisit()) {
-                                if (children[0]->getType() == "OR") {
-                                    if (children[0]->getNumberOfVisit() != 0 && children[0]->getNumberOfVisit() < children[0]->getChildren().size()) {
-                                        flag = true;
-                                    } else {
-                                        flag = false;
-                                    }
-                                }
-                                pushAndInc(children[0]);
-                                writeElement(children[0]);
-                            } else {
-                                deleteNode = children[0];
-                            }
-                        } else {
-                            if (index == children.size() - 1) {
-                                deleteNode = topNode;
-                                Stack.pop();
-                                while (!Stack.empty() && Stack.top()->getType() == "OR") {
-                                    deleteNode = Stack.top();
-                                    Stack.pop();
-                                }
-                            } else {
-                                if (children[index + 1]->getNumberOfVisit() < children[index + 1]->getMaxNumberOfVisit()) {
-
-                                    pushAndInc(children[index + 1]);
-                                    writeElement(children[index + 1]);
-                                } else {
-                                    deleteNode = children[index + 1];
-                                }
-                            }
-                        }
-                    } else {
-                        deleteNode = topNode;
-                        Stack.pop();
-                        while (!Stack.empty() && Stack.top()->getType() == "OR") {
-                            deleteNode = Stack.top();
-                            Stack.pop();
-                        }
+                        localVariant -= countVariantsChild;
                     }
                 }
-
-                if (topNode->getType() == "OR") {
-                    int sizeStack = Stack.size();
-
-                    if (flag) {
-                        int min = 100000;
-                        int indexChild = -1;
-
-                        for (int i = 0; i < children.size(); i++) {
-                            if (min > children[i]->getNumberOfVisit() && children[i]->getNumberOfVisit() < children[i]->getMaxNumberOfVisit()) {
-                                min = children[i]->getNumberOfVisit();
-                                indexChild = i;
-                            }
-                        }
-                        if (min != -1 && indexChild != -1) {
-                            pushAndInc(children[indexChild]);
-                            writeElement(children[indexChild]);
-                        }
-                    } else {
-                        for (int i = 0; i < children.size(); i++) {
-                            if (children[i]->getNumberOfVisit() < children[i]->getMaxNumberOfVisit()) {
-                                pushAndInc(children[i]);
-                                writeElement(children[i]);
-                                break;
-                            }
-                        }
-                    }
-                    if (sizeStack == Stack.size()) {
-                        deleteNode = topNode;
-                        Stack.pop();
-                        while (!Stack.empty() && Stack.top()->getType() == "OR") {
-                            deleteNode = Stack.top();
-                            Stack.pop();
-                        }
-                    }
-                }
-
-                if (topNode->getType() == "LIST") {
-                    deleteNode = topNode;
-                    Stack.pop();
-                    while (!Stack.empty() && Stack.top()->getType() == "OR") {
-                        deleteNode = Stack.top();
-                        Stack.pop();
-                    }
-                }
-
             }
-            clearStack();
         }
     }
 };
