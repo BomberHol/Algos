@@ -284,6 +284,7 @@ public:
             }
         }
         clearStack();
+        cout << endl;
     }
 
     void calculateAllElementsTree() {
@@ -405,6 +406,7 @@ public:
         stack<StackEntity> Stack;
         const int totalVariants = root->getCountVariants();
         for (int variant = 0; variant < totalVariants; variant++) {
+            cout << "----------------------" << endl;
             Stack.push({root, variant, 0});
             while (!Stack.empty()) {
                 StackEntity top = Stack.top();
@@ -435,28 +437,63 @@ public:
                 }
             }
         }
+        cout << "----------------------" << endl;
+        cout << endl;
     }
 };
 
 
 int main() {
-    Tree* tree = new Tree("My Tree");
-    ifstream inFile = ifstream("in.txt");
-    inFile.open("/home/bomber-hol/Public/Algos/lab_3/num-27/in.txt");
+    bool isExit = false;
+    string command;
+    Tree* tree = nullptr;
 
-    try {
-        if (!inFile.is_open()) {
-            throw runtime_error("Ошибка открытия файла!");
+    while (!isExit) {
+        command = "";
+        cout << "read - Считать дерево из файла" << endl;
+        cout << "write-tree - Вывести дерево в консоль" << endl;
+        cout << "write-all-elements - Вывести все элементы дерева" << endl;
+        cout << "exit - Выйти из программы" << endl;
+        cout << endl;
+
+        cin >> command;
+        cout << command << endl;
+
+        try {
+
+            if (command == "read") {
+                tree = new Tree("My Tree");
+                ifstream inFile = ifstream(".txt");
+                inFile.open("/home/bomber-hol/Public/Algos/lab_3/num-27/in.txt");
+                if (!inFile.is_open()) {
+                    throw runtime_error("Ошибка открытия файла!");
+                }
+                tree->readTreeFromFile(inFile);
+                tree->calculateAllElementsTree();
+                tree->calculateMaxVisit();
+            }
+
+            if (command == "write-tree") {
+                if (tree == nullptr) {
+                    throw runtime_error("Дерево не было считано");
+                }
+                tree->writeTree();
+            }
+
+            if (command == "write-all") {
+                if (tree == nullptr) {
+                    throw runtime_error("Дерево не было считано");
+                }
+                tree->write();
+                tree->writeAllElements();
+            }
+
+            if (command == "exit") {
+                isExit = true;
+            }
+
+        } catch (runtime_error& e) {
+            cerr << e.what() << endl;
         }
-        tree->readTreeFromFile(inFile);
-        tree->calculateAllElementsTree();
-        tree->calculateMaxVisit();
-        tree->writeTree();
-        cout << endl << endl << endl;
-        tree->write();
-        tree->writeAllElements();
-    } catch (runtime_error& e) {
-        cerr << e.what() << endl;
     }
-
 }
